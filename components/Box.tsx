@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Animated } from 'react-native';
 
 interface BoxProps {
     id: number;
@@ -8,9 +8,17 @@ interface BoxProps {
     onPress: () => void;
     disabled: boolean;
     isSelected?: boolean;
+    boxSize?: number;
 }
 
-export const Box: React.FC<BoxProps> = ({ id, isOpened, value, onPress, disabled, isSelected }) => {
+export const Box: React.FC<BoxProps> = ({ id, isOpened, value, onPress, disabled, isSelected, boxSize }) => {
+    const formatValue = (val: number) => {
+        if (val >= 1000000) return '$1M';
+        if (val >= 1000) return '$' + (val / 1000) + 'k';
+        if (val < 1) return '¢' + Math.round(val * 100);
+        return '$' + val;
+    };
+
     const scale = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -26,26 +34,39 @@ export const Box: React.FC<BoxProps> = ({ id, isOpened, value, onPress, disabled
         }
     }, [isSelected, isOpened]);
 
+    // Use pixel size from parent if available, otherwise fall back to a reasonable default
+    const size = boxSize && boxSize > 0 ? boxSize : 80;
+    const height = size * (62 / 80); // maintain aspect ratio
+
     return (
         <TouchableOpacity
             activeOpacity={0.7}
             onPress={onPress}
             disabled={disabled || isOpened}
         >
-            <Animated.View style={[
-                styles.container,
-                isOpened && styles.opened,
-                isSelected && styles.selected,
-                { transform: [{ scale }] }
-            ]}>
-                {!isOpened ? (
-                    <Text style={styles.boxText}>{id}</Text>
+            <Animated.View style={[styles.container, { width: size, height: height, margin: 4, transform: [{ scale }] }]}>
+                {isOpened ? (
+                    <ImageBackground
+                        source={require('../assets/open_briefcase.png')}
+                        style={styles.image}
+                        resizeMode="contain"
+                    >
+                        <View style={styles.openedContent}>
+                            <Text style={styles.valueText} adjustsFontSizeToFit numberOfLines={1}>
+                                {formatValue(value)}
+                            </Text>
+                        </View>
+                    </ImageBackground>
                 ) : (
-                    <View style={styles.valueContainer}>
-                        <Text style={styles.valueText}>
-                            ${value >= 1000 ? (value / 1000) + 'k' : value}
-                        </Text>
-                    </View>
+                    <ImageBackground
+                        source={require('../assets/closed_briefcase.png')}
+                        style={styles.image}
+                        resizeMode="contain"
+                    >
+                        <View style={styles.closedContent}>
+                            <Text style={styles.boxText} adjustsFontSizeToFit numberOfLines={1}>{id}</Text>
+                        </View>
+                    </ImageBackground>
                 )}
             </Animated.View>
         </TouchableOpacity>
@@ -54,42 +75,43 @@ export const Box: React.FC<BoxProps> = ({ id, isOpened, value, onPress, disabled
 
 const styles = StyleSheet.create({
     container: {
-        width: 60,
-        height: 45,
-        backgroundColor: '#FFD700', // Gold color
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: '#B8860B',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    image: {
+        width: '100%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        margin: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
-        elevation: 5,
     },
-    opened: {
-        backgroundColor: '#2A2A2A',
-        borderColor: '#444',
-        shadowOpacity: 0,
-        elevation: 0,
+    closedContent: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: '8%',
     },
-    selected: {
-        borderColor: '#00FF00',
-        borderWidth: 3,
+    openedContent: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: '25%',
+        paddingHorizontal: '5%',
     },
     boxText: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: '900',
         color: '#000',
-    },
-    valueContainer: {
-        padding: 2,
+        textShadowColor: 'rgba(255,255,255,0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
     },
     valueText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#FFF',
-    }
+        color: '#1A472A',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
+        overflow: 'hidden',
+        textAlign: 'center',
+    },
 });

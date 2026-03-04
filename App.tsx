@@ -6,6 +6,7 @@ import { Board } from './components/Board';
 import { Tracker } from './components/Tracker';
 import { StatusPanel } from './components/StatusPanel';
 import { OfferModal } from './components/OfferModal';
+import { GameOverScreen } from './components/GameOverScreen';
 
 export default function App() {
   const {
@@ -43,25 +44,9 @@ export default function App() {
     }
   }, [phase, handleFinalChoice]);
 
-  useEffect(() => {
-    if (phase === 'GAME_OVER' && winnings !== null) {
-      let message = `You won $${winnings.toLocaleString('en-US')}!`;
-      if (offer !== null) {
-        const playerBox = boxes.find(b => b.id === playerBoxId);
-        if (playerBox) {
-          message += `\n\nYour box contained $${playerBox.value.toLocaleString('en-US')}.`;
-        }
-      }
-
-      Alert.alert(
-        "Game Over",
-        message,
-        [
-          { text: "Play Again", onPress: startGame }
-        ]
-      );
-    }
-  }, [phase, winnings, startGame, offer, boxes, playerBoxId]);
+  // Determine if the player took the banker's deal (offer exists and game is over)
+  const tookDeal = phase === 'GAME_OVER' && offer !== null;
+  const playerBox = boxes.find(b => b.id === playerBoxId);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -74,6 +59,9 @@ export default function App() {
           <View style={styles.playerBoxContainer}>
             <Text style={styles.playerBoxLabel}>YOUR BOX:</Text>
             <View style={styles.playerBoxIcon}>
+              <View style={styles.miniHandle} />
+              <View style={[styles.miniStripe, { left: '25%' }]} />
+              <View style={[styles.miniStripe, { left: '75%' }]} />
               <Text style={styles.playerBoxNumber}>{playerBoxId}</Text>
             </View>
           </View>
@@ -110,6 +98,16 @@ export default function App() {
         onDeal={() => handleDealResponse(true)}
         onNoDeal={() => handleDealResponse(false)}
       />
+
+      {/* ── Game Over: Dedicated animated screen ── */}
+      {phase === 'GAME_OVER' && winnings !== null && (
+        <GameOverScreen
+          winnings={winnings}
+          playerBoxValue={playerBox ? playerBox.value : null}
+          tookDeal={tookDeal}
+          onPlayAgain={startGame}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -124,7 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50, // Added padding for typical device notches running non-safe-area
+    paddingTop: 50,
     paddingBottom: 10,
     backgroundColor: '#000',
     borderBottomWidth: 1,
@@ -146,19 +144,45 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   playerBoxIcon: {
-    width: 30,
-    height: 30,
-    backgroundColor: '#FFD700',
+    width: 36,
+    height: 28,
+    backgroundColor: '#BCBCBC',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 4,
-    borderWidth: 2,
+    borderRadius: 3,
+    borderWidth: 1.5,
     borderColor: '#00FF00',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 4,
+    position: 'relative',
+    overflow: 'hidden',
   },
   playerBoxNumber: {
     color: '#000',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
+    zIndex: 3,
+  },
+  miniHandle: {
+    position: 'absolute',
+    top: -4,
+    width: 12,
+    height: 4,
+    backgroundColor: '#333',
+    borderRadius: 1,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  miniStripe: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    zIndex: 1,
   },
   gameArea: {
     flex: 1,
@@ -166,10 +190,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   trackerColumn: {
-    flex: 2,
+    flex: 1.2,
   },
   boardColumn: {
-    flex: 5,
+    flex: 3,
     justifyContent: 'center',
   },
 });
